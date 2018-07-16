@@ -1,4 +1,4 @@
-package so4308554;
+package MCK;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -35,7 +35,7 @@ public class JsonReader {
   }
 
   public static void main(String[] args) throws IOException, JSONException {
-    JSONObject json = readJsonFromUrl("https://ecsclarkdav.utdallas.edu@SSL@4443");
+    JSONObject json = readJsonFromUrl("URL"); // Put URL link or web server address here.
     System.out.println(json.toString());
     System.out.println(json.get("id"));
   }
