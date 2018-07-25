@@ -6,10 +6,23 @@ class Request{
   private $cmx;
   private $path;
   private $ip;
-  private $destination;
+  private $input; // Destination of the user.
+
+  // Get destination from the client.
+  public function destination(){
+    foreach ($_POST as $request => $input) {
+    switch ($request) {
+        case "destination":
+            $destination = $input;
+            break;
+        default:
+            break;
+    }
+}
+
+  }
 
   // Get user IP.
-
   public function userIP(){
     $ip = '';
 
@@ -43,24 +56,22 @@ class Request{
    return $ip;
 }
 
-  // Requests JSON data from CMX server.
-
+  // Recieve JSON data from CMX server.
   public function cmxRequest(){
     $cmx = new CMXRequest("config.json", $ip){
       $cmx->getResponse();
     }
-  // Requests path from ARCGIS.
+  // Receive path from ARCGIS.
   public function routeRequest(){
     $path = new RouteFunctions(){
-      $json = $path->getPath($cmx, $destination);
+      $json = $path->getPath($cmx, $input);
       $route = $path->compilePath($json);
     }
 
   }
-  // Returns path from ARCGIS to the client.
-  header("Content-Type: application/json");
-  echo json_encode($route);
-
+  // Return path from ARCGIS to the client.
+    header("Content-Type: application/json");
+    echo json_encode($route);
 
 
 }
