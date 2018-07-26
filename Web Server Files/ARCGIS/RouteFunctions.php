@@ -1,6 +1,27 @@
 <?php
 
 $tokenFull = array();
+/*
+   * isJson checks if an input string is json.
+   * Parameters:  $string, the variable to be tested
+   * Return:      true if $string is json, false if not
+   */
+function isJson($string)
+{
+    json_decode($string);
+    return (json_last_error() == JSON_ERROR_NONE);
+}
+
+/* getFloor returns the floor number from a CMX object
+ * Parameters:  $string, the returned building and floor number from CMX
+ * Return:      $floor, the separated floor number
+ */
+function getFloor($string)
+{
+    $floor = substr($string, strpos($string, ">") + 1);
+    return $floor;
+}
+
 
 class RouteFunctions
 {
@@ -9,7 +30,7 @@ class RouteFunctions
      * Parameters:  $json, a raw json object directly from ArcGIS containing the coordinate locations for the path
      * Return:      $route, a 1 dimensional array containing points in the form (z1, x1, y1, z2, x2, y2,... zn, xn, yn)
      */
-    public function compilePath($json)
+    public static function compilePath($json)
     {
 
         //In case $json is empty
@@ -124,7 +145,7 @@ class RouteFunctions
      *              $f, the format of the requests (pjson)
      * Returns:     $token, the generated token
      */
-    function generateToken()
+    static function generateToken()
     {
         // Setup cURL
         $ch = curl_init("https://cybernetics.utdallas.edu/portal/sharing/rest/generateToken");
@@ -179,28 +200,92 @@ class RouteFunctions
             return FALSE;
         }
     }
+    static function findNearest($x, $y, $filter = "1=1") {
+        global $tokenFull;
+        //Submit request for job ID.
+        $ch = curl_init();
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_URL => "https://cybernetics.utdallas.edu/server/rest/services/System/SpatialAnalysisTools/GPServer/FindNearest/submitJob?" .
+                http_build_query (array(
+                    "analysisLayer" => '{"layerDefinition":{"geometryType": "esriGeometryPoint","fields": []},"featureSet": {"geometryType": "esriGeometryPoint","spatialReference": {"wkid": 32138 },"features": [{"geometry": {"x": ' . $x . ',"y": ' . $y . '}}]}}',
+                    "nearLayer" => '{"url":"https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet/MapServer/0","filter":"' . $filter . '"}',
+                    "f" => 'json',
+                    "token" => $tokenFull['token'],
+                    "maxCount" => 1,
+                ))));
+        $resp = curl_exec($ch);
+        curl_close($ch);
+        $jobID = json_decode($resp, TRUE);
+        $jobID = $jobID['jobId'];
+
+
+        /*
+        1) submit request
+        2) wait for asynchronous process, know when its done by requesting "jobStatus": esriJobSucceeded
+            -jobsucceeded
+            -if jobfailed, spit error
+        3) parse response (value,featureSet,Features,attributes,roomno)
+         */
+
+        $ch = curl_init();
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_URL => 'https://cybernetics.utdallas.edu/server/rest/services/System/SpatialAnalysisTools/GPServer/FindNearest/jobs/' . $jobID . '?token=' . $tokenFull['token'] . '&f=json',
+        ));
+        do {
+            sleep(.1);
+            $resp = curl_exec($ch);
+
+            $jobStatus = json_decode($resp, TRUE);
+            $jobStatus = $jobStatus['jobStatus'];
+            if($jobStatus == "esriJobFailed"){
+                echo "Error 0: JOB FAILED";
+                break;
+            }
+        } while ($jobStatus != "esriJobSucceeded");
+        curl_close($ch);
+
+
+        $ch = curl_init();
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_URL => 'https://cybernetics.utdallas.edu/server/rest/services/System/SpatialAnalysisTools/GPServer/FindNearest/jobs/' . $jobID . '/results/nearestLayer?token=' . $tokenFull['token'] . '&f=json',
+        ));
+        $resp = curl_exec($ch);
+        curl_close($ch);
+        $roomno = json_decode($resp, TRUE);
+        $roomno = $roomno['value']['featureSet']['features']['0']['attributes']['roomno'];
+        return $roomno;
+    }
+
+    static function solveRoute($originroom, $destinationroom)
+    {
+        global $tokenFull;
+        $ch = curl_init();
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_URL => 'https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet/NAServer/Route/solve?' .
+                http_build_query(array(
+                    'stops' => '{"type" : "features","url" : "https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet/MapServer/0/query?where=roomno+%3D+\'' . $originroom .'\'+OR+roomno+%3D+\'' . $destinationroom . '\'&returnZ=true&f=json","doNotLocateOnRestrictedElements":true}',
+                    'token' => $tokenFull['token'],
+                    'f' => 'json',
+                    'returnDirections' => false,
+                    'returnZ' => true,
+                ))));
+        $resp = curl_exec($ch);
+        curl_close($ch);
+        return RouteFunctions::compilePath($resp);
+    }
+
+    static function solveFacility($x, $y, $floornum, $facilityType)
+    {
+        $facility_room = RouteFunctions::findNearest($x,$y,"floornum=" . $floornum . " AND spacetype='" . $facilityType . "'");
+        $user_room = RouteFunctions::findNearest($x,$y,"floornum=" . $floornum);
+        return RouteFunctions::solveRoute($user_room,$facility_room);
+    }
 }
 
-    /*
-     * isJson checks if an input string is json.
-     * Parameters:  $string, the variable to be tested
-     * Return:      true if $string is json, false if not
-     */
-function isJson($string)
-{
-    json_decode($string);
-    return (json_last_error() == JSON_ERROR_NONE);
-}
-
-/* getFloor returns the floor number from a CMX object
- * Parameters:  $string, the returned building and floor number from CMX
- * Return:      $floor, the separated floor number
- */
-function getFloor($string)
-{
-    $floor = substr($string, strpos($string, ">") + 1);
-    return $floor;
-}
 RouteFunctions::generateToken();
-print_r($tokenFull);
-echo "<br><br>" . $tokenFull['token'];
+
+print_r(RouteFunctions::solveFacility(763735.766608133912, 2147974.4081083461, 2, "Restroom"));
