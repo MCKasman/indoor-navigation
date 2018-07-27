@@ -65,22 +65,19 @@ class Request{
     $cmx = new CMXRequest("config.json", $ip);
 
     return $cmx;
+}
 
-  // receive path from ARCGIS
+   // receive path from ARCGIS
    function routeRequest(){
     $path = new RouteFunctions();
       $json = $path->getPath($cmx, $input);
       $route = $path->compilePath($json);
 
       return $route;
-
-
   }
+
   // return path from ARCGIS to the client
     header("Content-Type: application/json");
     echo json_encode($route);
-
-
-  }
 
 }

@@ -54,7 +54,6 @@ class RouteFunctions
             $xCoordList[$counter] = $item[0];
             $yCoordList[$counter] = $item[1];
             $zCoordList[$counter] = $item[2];
-            //echo $item[2].", ".$item[0].", ".$item[1]."<br>";
             $counter++;
         }
 
@@ -67,7 +66,7 @@ class RouteFunctions
         }
 
         //return compiled json encoded route
-        return json_encode($route);
+        return json_encode(array("route"=>$route));
     }
 
     /* getPath sends a request to the ArcGIS server to receive a raw json object for the path.
@@ -91,7 +90,12 @@ class RouteFunctions
         }
         elseif (is_array($CMX)) {
             $this->$startTemp = $CMX;
-        } //If none/invalid
+        }
+        //If $CMX is a room number
+        if (is_string($CMX)){
+            $this->$startRoom = $CMX;
+        }
+        //If none/invalid
         else {
             return "Error: Invalid input. Raw json, associative array, or room number required.";
         }
@@ -102,18 +106,14 @@ class RouteFunctions
         }
         elseif (is_array($end)) {
             $this->$endTemp = $end;
-        } //If none/invalid
-        else {
-            return "Error: Invalid input. Raw json, associative array, or room number required.";
-        }
-
-        //If $CMX is a room number
-        if (is_string($CMX)){
-            $this->$startRoom = $CMX;
         }
         //If $end is a room number
         if (is_string($end)){
             $this->$endRoom = $end ;
+        }
+        //If none/invalid
+        else {
+            return "Error: Invalid input. Raw json, associative array, or room number required.";
         }
 
         //Creates $startCoord, a coordinate in the (z, x, y) form if $CMX is not a room number
@@ -131,6 +131,8 @@ class RouteFunctions
             $endCoord[1] = $endTemp["response"]["mapCoordinate"][2];
             $endCoord[2] = getFloor($endTemp["response"]["mapInfo"]["mapHierarchy"]);
         }
+
+        //if ($startRoom )
 
 
         return '';/*POST to ArcGIS containing $start and $end*/
@@ -164,6 +166,7 @@ class RouteFunctions
 
         // Send the request
         $response = curl_exec($ch);
+        curl_close($ch);
 
         // Check for errors
         if($response === FALSE){
@@ -259,6 +262,10 @@ class RouteFunctions
         return $roomno;
     }
 
+    /*
+     *
+     *  Notes:  Do not use rooms with subsections in them (I.e. letters), as this negatively effects ArcGIS.
+     */
     static function solveRoute($originroom, $destinationroom)
     {
         global $tokenFull;
@@ -287,5 +294,6 @@ class RouteFunctions
 }
 
 RouteFunctions::generateToken();
-
-print_r(RouteFunctions::solveFacility(763735.766608133912, 2147974.4081083461, 2, "Restroom"));
+//solveRoute(findNearest($x,$y,"floornum=" . $floornum),$destinationroom); //route from arbitrary coord to destination room
+//print_r(RouteFunctions::solveFacility(763735.766608133912, 2147974.4081083461, 2, "Restroom"));
+print_r(RouteFunctions::solveRoute('2.530', '2.512'));
