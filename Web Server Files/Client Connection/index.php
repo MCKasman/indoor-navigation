@@ -1,8 +1,9 @@
 <?php
+
 include "./cmx_util.php";
 include "./RouteFunctions.php";
 
-class Request{
+class Request {
   private $cmx;
   private $path;
   private $input;
@@ -11,73 +12,57 @@ class Request{
   private $ip;
 
   // get destination from the client
-  public function destination(){
-    foreach ($_POST as $request => $input) {
-    switch ($request) {
-        case "destination":
-            $destination = $input;
-            break;
-        default:
-            break;
-    }
-}
-
+  public function destination() {
+    $input = $_POST["destination"];
   }
 
   // get user IP
-  public function userIP(){
-    $ip = '';
+  public function userIP() {
+      $ip = '';
 
-   // identify the IP address of the host that is making the HTTP request
-   if ($_SERVER['HTTP_CLIENT_IP']){
-       $ip = $_SERVER['HTTP_CLIENT_IP'];
-   }
+     // identify the IP address of the host that is making the HTTP request
+     if ($_SERVER['HTTP_CLIENT_IP'])  {
+         $ip = $_SERVER['HTTP_CLIENT_IP'];
+     }
+     else if($_SERVER['HTTP_X_FORWARDED_FOR'])  {
+         $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+     }
+     else if($_SERVER['HTTP_X_FORWARDED'])  {
+         $ip = $_SERVER['HTTP_X_FORWARDED'];
+     }
+     else if($_SERVER['HTTP_FORWARDED_FOR'])  {
+         $ip = $_SERVER['HTTP_FORWARDED_FOR'];
+     }
+     else if($_SERVER['HTTP_FORWARDED'])  {
+         $ip = $_SERVER['HTTP_FORWARDED'];
+     }
+     // refer to the IP address of the client
+     else if($_SERVER['REMOTE_ADDR'])  {
+         $ip = $_SERVER['REMOTE_ADDR'];
+     }
+     else {
+         $ip = 'UNKNOWN';
+     }
 
-   else if($_SERVER['HTTP_X_FORWARDED_FOR']){
-       $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-   }
-
-   else if($_SERVER['HTTP_X_FORWARDED']){
-       $ip = $_SERVER['HTTP_X_FORWARDED'];
-   }
-
-   else if($_SERVER['HTTP_FORWARDED_FOR']){
-       $ip = $_SERVER['HTTP_FORWARDED_FOR'];
-   }
-
-   else if($_SERVER['HTTP_FORWARDED']){
-       $ip = $_SERVER['HTTP_FORWARDED'];
-   }
-
-   // refer to the IP address of the client
-   else if($_SERVER['REMOTE_ADDR']){
-       $ip = $_SERVER['REMOTE_ADDR'];
-   }
-   else{
-       $ip = 'UNKNOWN';
-   }
-
-   return $ip;
-}
-
-  // recieve JSON data from CMX server
-  public function cmxRequest(){
-    $cmx = new CMXRequest("config.json", $ip);
-
-    return $cmx;
-}
-
-   // receive path from ARCGIS
-   function routeRequest(){
-    $path = new RouteFunctions();
-      $json = $path->getPath($cmx, $input);
-      $route = $path->compilePath($json);
-
-      return $route;
+     return $ip;
   }
 
-  // return path from ARCGIS to the client
-    header("Content-Type: application/json");
-    echo json_encode($route);
+  public function servers() {
 
+    // recieve JSON data from CMX server
+    $cmx = new CMXRequest("config.json", $ip);
+    return $cmx;
+
+    // receive path from ARCGIS
+    function routeRequest()  {
+      $path = new RouteFunctions();
+      $json = $path->getPath($cmx, $input);
+      $route = $path->compilePath($json);
+      return $route;
+    }
+
+    // return path from ARCGIS to the client
+    header("Content-Type: application/json");
+      exit(json_encode($route));
+  }
 }

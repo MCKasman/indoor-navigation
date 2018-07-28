@@ -30,7 +30,7 @@ class RouteFunctions
      * Parameters:  $json, a raw json object directly from ArcGIS containing the coordinate locations for the path
      * Return:      $route, a 1 dimensional array containing points in the form (z1, x1, y1, z2, x2, y2,... zn, xn, yn)
      */
-    public static function compilePath($json)
+    public static function compilePath($json,$reverse)
     {
 
         //In case $json is empty
@@ -48,13 +48,21 @@ class RouteFunctions
         $zCoordList = array();
         $counter = 0;
 
-
         //Construct coord lists from $arcGISData
         foreach ($arcGISData['routes']['features'][0]['geometry']['paths'][0] as $item) {
             $xCoordList[$counter] = $item[0];
             $yCoordList[$counter] = $item[1];
             $zCoordList[$counter] = $item[2];
             $counter++;
+        }
+
+        //reverse the order if the path needs to  be greater roomno to lesser roomno
+
+        if($reverse)
+        {
+            $xCoordList = array_reverse($xCoordList);
+            $yCoordList = array_reverse($yCoordList);
+            $zCoordList = array_reverse($zCoordList);
         }
 
         //Construct $route from $zCoordList, $xCoordList and $yCoordList
@@ -212,7 +220,7 @@ class RouteFunctions
             CURLOPT_URL => "https://cybernetics.utdallas.edu/server/rest/services/System/SpatialAnalysisTools/GPServer/FindNearest/submitJob?" .
                 http_build_query (array(
                     "analysisLayer" => '{"layerDefinition":{"geometryType": "esriGeometryPoint","fields": []},"featureSet": {"geometryType": "esriGeometryPoint","spatialReference": {"wkid": 32138 },"features": [{"geometry": {"x": ' . $x . ',"y": ' . $y . '}}]}}',
-                    "nearLayer" => '{"url":"https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet/MapServer/0","filter":"' . $filter . '"}',
+                    "nearLayer" => '{"url":"https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet2/MapServer/1","filter":"' . $filter . '"}',
                     "f" => 'json',
                     "token" => $tokenFull['token'],
                     "maxCount" => 1,
@@ -266,23 +274,36 @@ class RouteFunctions
      *
      *  Notes:  Do not use rooms with subsections in them (I.e. letters), as this negatively effects ArcGIS.
      */
-    static function solveRoute($originroom, $destinationroom)
+    static function solveRoute($originroom, $destinationroom, $preferences='')
     {
         global $tokenFull;
+        $reverse = false;
         $ch = curl_init();
+        $barriers = '';
+        if($preferences != '')
+        {
+            //$preferences must be set to either "Stairway" or "Elevator Cab" to avoid  the corresponding vertical transport method
+            $barriers = '{ "type" : "features","url" : "https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet2/MapServer/0/query?where=spacetype=\'' . $preferences . '\'%26returnZ=true%26f=json","doNotLocateOnRestrictedElements" : true}';
+        }
         curl_setopt_array($ch, array(
             CURLOPT_RETURNTRANSFER => TRUE,
-            CURLOPT_URL => 'https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet/NAServer/Route/solve?' .
+            CURLOPT_URL => 'https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet2/NAServer/Route/solve?' .
                 http_build_query(array(
-                    'stops' => '{"type" : "features","url" : "https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet/MapServer/0/query?where=roomno+%3D+\'' . $originroom .'\'+OR+roomno+%3D+\'' . $destinationroom . '\'&returnZ=true&f=json","doNotLocateOnRestrictedElements":true}',
+                    'stops' => '{"type" : "features","url" : "https://cybernetics.utdallas.edu/server/rest/services/IndoorNav/GreenFinalNet2/MapServer/1/query?where=roomno+%3D+\'' . $originroom .'\'+OR+roomno+%3D+\'' . $destinationroom . '\'&returnZ=true&f=json","doNotLocateOnRestrictedElements":true}',
                     'token' => $tokenFull['token'],
                     'f' => 'json',
                     'returnDirections' => false,
                     'returnZ' => true,
+                    'orderByFields' => 'roomno',
+                    'barriers' => $barriers
                 ))));
         $resp = curl_exec($ch);
         curl_close($ch);
-        return RouteFunctions::compilePath($resp);
+        if(strcmp($originroom, $destinationroom) < 0)
+        {
+            $reverse = true;
+        }
+        return RouteFunctions::compilePath($resp,$reverse);
     }
 
     static function solveFacility($x, $y, $floornum, $facilityType)
@@ -296,4 +317,4 @@ class RouteFunctions
 RouteFunctions::generateToken();
 //solveRoute(findNearest($x,$y,"floornum=" . $floornum),$destinationroom); //route from arbitrary coord to destination room
 //print_r(RouteFunctions::solveFacility(763735.766608133912, 2147974.4081083461, 2, "Restroom"));
-print_r(RouteFunctions::solveRoute('2.530', '2.512'));
+print_r(RouteFunctions::solveRoute('3.206', '3.104H'));
