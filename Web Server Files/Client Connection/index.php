@@ -54,7 +54,7 @@ class Request {
     return $cmx;
 
     // receive path from ARCGIS
-    function routeRequest()  {
+    function routeRequest() {
       $path = new RouteFunctions();
       $json = $path->getPath($cmx, $input);
       $route = $path->compilePath($json);
