@@ -1,10 +1,8 @@
 <?php
 
-/* //For testing
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-8*/
 
 include_once "cmx/cmx_util.php";
 include_once "arcGIS/RouteFunctions.php";
@@ -26,19 +24,12 @@ class Request {
     $this->stairs = $_POST["stairs"];
     $this->elevators = $_POST["elevators"];
 
-    /*if($this->stairs === true){
-        echo  "stairs is bool true\n";
-    } else echo "stairs is not  bool  true";
-    if($this->elevators === true){
-        echo "elevators is bool true\n";
-    } else echo "elevators is not bool true";
-*/
     //$this->originroom = "4.205";
     //$this->destinationroom = "4.516E";
-    //if ($_SERVER['REQUEST_METHOD']=='POST') {
-      //echo("Hello World!\n $this->originroom \n $this->destinationroom \n $this->stairs \n $this->elevators");
-      //print_r($_POST);
-    //}
+    if ($_SERVER['REQUEST_METHOD']=='POST') {
+      echo("Hello World!\n $this->originroom \n $this->destinationroom \n $this->stairs \n $this->elevators");
+      print_r($_POST);
+    }
   }
 
   // get user IP
@@ -68,14 +59,14 @@ class Request {
          $ip = 'UNKNOWN';
      }
 
-     //echo $ip . "\n \n";
+     echo $ip . "\n \n";
      return $ip;
 
   }
 
-  public function getOriginRoom()
+  public function destinationRoomIsSet()
   {
-	  return $this->originroom;
+	  return (empty($this->destinationroom) == FALSE);
   }
 
   public function originRoomIsSet()
@@ -88,20 +79,28 @@ class Request {
     // receive path from ARCGIS
     $path = new RouteFunctions();
 
-    if($this->originRoomIsSet()) {
+    if($this->originRoomIsSet() && $this->destinationRoomIsSet()) {
         $json = $path->getPath($this->originroom, $this->destinationroom, $this->stairs, $this->elevators);
         //$route = $path->compilePath($json);
     }
 
-    else{
+    else if($this->destinationRoomIsSet()){
         // recieve JSON data from CMX server
         $cmx = new CMXRequest("cmx/config.json", $this->userIP());
-        //echo $this->userIP() . "\n \n";
-        //print_r ($cmx->getResponse());
+        echo $this->userIP() . "\n \n";
+        print_r ($cmx->getResponse());
         // return $cmx;
 
         $json = $path->getPath($cmx->getResponse(), $this->destinationroom, $this->stairs, $this->elevators);
         //$route = $path->compilePath($json);
+    }
+
+    else if($this->originRoomIsSet()){
+        $json = RouteFunctions::queryRoomNum($this->originroom);
+    }
+    else {
+      $cmx = new CMXRequest("cmx/config.json", $this->userIP());
+      $json = $path->queryRoomNum($path->parseCMXPoint($cmx->getResponse()));
     }
 
     return $json;

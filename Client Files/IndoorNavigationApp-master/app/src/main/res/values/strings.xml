@@ -1,0 +1,32 @@
+<resources>
+
+    <string name="app_name">Constellation</string>
+
+    //Main Activity strings
+    <string name="menu_icon">Menu</string>
+    <string name="et_from_hint">Starting Location</string>
+    <string name="tv_to">to</string>
+    <string name="et_to_hint">Destination</string>
+    <string name="btn_stairs">Stairs</string>
+    <string name="btn_both">Both</string>
+    <string name="btn_elevator">Elevator</string>
+    <string name="btn_navigate">Navigate</string>
+    <string name="first_floor">Level 2</string>
+    <string name="second_floor">Level 3</string>
+    <string name="third_floor">Level 4</string>
+    <string name="user_location">Your Location</string>
+    <string name="btn_start_nav">Start</string>
+
+    //Quick Nav Activity strings
+    <string name="tv_menu_title">Quick Navigation</string>
+    <string name="btn_bathrooms">Bathrooms</string>
+    <string name="btn_storm_shelters">Storm Shelters</string>
+    <string name="btn_water_fountains">Water Fountains</string>
+    <string name="btn_food">Food</string>
+    <string name="btn_entertainment">Entertainment</string>
+
+    //Navigation Activity strings
+    <string name="final_destination">Display Final Destination</string>
+    <string name="direction">Direction</string>
+
+</resources>
