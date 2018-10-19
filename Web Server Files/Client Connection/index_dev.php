@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-include_once "cmx/cmx_util.php";
+include_once "cmx_util/cmx_util.php";
 include_once "arcGIS/RouteFunctions.php";
 
 class Request {
