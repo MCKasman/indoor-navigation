@@ -1,6 +1,0 @@
-{
-    "username" : "indoornavigators",
-    "password" : "15th3ApTHetRu3N0rth?",
-    "map_endpoint" : "https://cmxproxy01.utdallas.edu/api/maps?",
-    "location_endpoint" : "https://cmxproxy01.utdallas.edu/api/clients?"
-}
