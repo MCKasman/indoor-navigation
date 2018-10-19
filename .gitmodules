@@ -1,3 +1,6 @@
 [submodule "Web Server Files/cmx_util"]
 	path = Web Server Files/cmx_util
 	url = https://github.com/elevenchars/cmx_util
+[submodule "Web Server Files/--force"]
+	path = Web Server Files/--force
+	url = https://github.com/elevenchars/cmx_util
